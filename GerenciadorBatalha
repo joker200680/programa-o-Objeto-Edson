@@ -1,0 +1,172 @@
+using UnityEngine;
+using System.Collections;
+
+public class GerenciadorBatalha : MonoBehaviour
+{
+    [Header("Personagens do Jogador")]
+    public Arqueiro arqueiro;
+    public Guerreiro guerreiro;
+    public Mago mago;
+
+    [Header("Inimigos")]
+    public Goblin goblin;
+    public Orc orc;
+
+    [Header("Sistema de UI e Recompensas")]
+    public GerenciadorUI gerenciadorUI;
+    public SistemaRecompensas sistemaRecompensas;
+
+    void Start()
+    {
+        Debug.Log("=== SISTEMA DE BATALHA INICIADO ===");
+
+        // Garantir que temos referência do sistema de recompensas
+        if (sistemaRecompensas == null)
+            sistemaRecompensas = GetComponent<SistemaRecompensas>();
+
+        StartCoroutine(SimularBatalha());
+    }
+
+    IEnumerator SimularBatalha()
+    {
+        yield return new WaitForSeconds(1f);
+
+        Debug.Log(" ARQUEIRO vs GOBLIN");
+        arqueiro.AtirarFlecha();
+        yield return new WaitForSeconds(1f);
+
+        if (goblin != null)
+            goblin.ReceberDano(8);
+        yield return new WaitForSeconds(1f);
+
+        Debug.Log(" GUERREIRO vs ORC");
+        guerreiro.GolpeEspada();
+        yield return new WaitForSeconds(1f);
+
+        if (orc != null)
+            orc.ReceberDano(12);
+        yield return new WaitForSeconds(1f);
+
+        Debug.Log(" MAGO vs INIMIGOS");
+        mago.LancarFeitico("Raio Elétrico");
+        yield return new WaitForSeconds(1f);
+
+        if (goblin != null)
+            goblin.ReceberDano(15);
+        if (orc != null)
+            orc.ReceberDano(15);
+        yield return new WaitForSeconds(1f);
+
+        Debug.Log(" Distribuindo recompensas...");
+        if (sistemaRecompensas != null)
+        {
+            sistemaRecompensas.InimigoDerrotado("Goblin");
+            yield return new WaitForSeconds(0.5f);
+            sistemaRecompensas.InimigoDerrotado("Orc");
+        }
+
+        yield return new WaitForSeconds(1f);
+        Debug.Log("=== BATALHA CONCLUÍDA ===");
+    }
+
+    // Método para teste rápido pelo teclado
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Alpha1))
+        {
+            arqueiro.AtirarFlecha();
+            if (goblin != null)
+            {
+                goblin.ReceberDano(10);
+                // Se o goblin morrer, dar recompensa
+                if (goblin.Vida <= 0 && sistemaRecompensas != null)
+                    sistemaRecompensas.InimigoDerrotado("Goblin");
+            }
+        }
+
+        if (Input.GetKeyDown(KeyCode.Alpha2))
+        {
+            guerreiro.GolpeEspada();
+            if (orc != null)
+            {
+                orc.ReceberDano(15);
+                // Se o orc morrer, dar recompensa
+                if (orc.Vida <= 0 && sistemaRecompensas != null)
+                    sistemaRecompensas.InimigoDerrotado("Orc");
+            }
+        }
+
+        if (Input.GetKeyDown(KeyCode.Alpha3))
+        {
+            mago.LancarFeitico("Nevasca");
+            if (goblin != null)
+            {
+                goblin.ReceberDano(12);
+                if (goblin.Vida <= 0 && sistemaRecompensas != null)
+                    sistemaRecompensas.InimigoDerrotado("Goblin");
+            }
+            if (orc != null)
+            {
+                orc.ReceberDano(12);
+                if (orc.Vida <= 0 && sistemaRecompensas != null)
+                    sistemaRecompensas.InimigoDerrotado("Orc");
+            }
+        }
+
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            arqueiro.RecarregarFlechas(5);
+            mago.Meditar();
+        }
+
+        if (Input.GetKeyDown(KeyCode.Alpha4))
+        {
+            if (sistemaRecompensas != null)
+                sistemaRecompensas.InimigoDerrotado("Goblin");
+        }
+
+        if (Input.GetKeyDown(KeyCode.Alpha5))
+        {
+            if (sistemaRecompensas != null)
+                sistemaRecompensas.InimigoDerrotado("Orc");
+        }
+
+        // Tecla para simular dano nos personagens (teste das barras de vida)
+        if (Input.GetKeyDown(KeyCode.D))
+        {
+            arqueiro.Vida -= 10;
+            guerreiro.Vida -= 15;
+            mago.Vida -= 8;
+            Debug.Log("Dano aplicado aos personagens!");
+        }
+    }
+
+    // Método público para outras classes iniciarem batalhas
+    public void IniciarBatalha(Player jogador, Inimigo inimigo)
+    {
+        StartCoroutine(BatalhaIndividual(jogador, inimigo));
+    }
+
+    private IEnumerator BatalhaIndividual(Player jogador, Inimigo inimigo)
+    {
+        Debug.Log($" {jogador.Nome} vs {inimigo.NomeInimigo}");
+
+        // Jogador ataca
+        jogador.Atacar();
+        yield return new WaitForSeconds(1f);
+        inimigo.ReceberDano(10);
+
+        // Inimigo contra-ataca (se ainda estiver vivo)
+        yield return new WaitForSeconds(1f);
+        if (inimigo.Vida > 0)
+        {
+            inimigo.AtacarPlayer(jogador);
+        }
+        else
+        {
+            // Dar recompensa se inimigo morreu
+            if (sistemaRecompensas != null)
+                sistemaRecompensas.InimigoDerrotado(inimigo.NomeInimigo);
+        }
+    }
+}
