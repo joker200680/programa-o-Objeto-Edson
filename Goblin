@@ -1,0 +1,36 @@
+using UnityEngine;
+
+public class Goblin : Inimigo
+{
+    [SerializeField] private int velocidade;
+
+    void Start()
+    {
+        if (string.IsNullOrEmpty(nomeInimigo))
+            nomeInimigo = "Goblin";
+
+        if (vidaMaxima == 0) vidaMaxima = 30;
+        if (vida == 0) vida = vidaMaxima;
+        if (dano == 0) dano = 5;
+        if (velocidade == 0) velocidade = 8;
+
+        Debug.Log($"Goblin {nomeInimigo} preparado! Velocidade: {velocidade}");
+    }
+
+    public void AtaqueRapido()
+    {
+        Debug.Log($"{nomeInimigo} executou ataque rápido!");
+    }
+
+    public override void AtacarPlayer(Player player)
+    {
+        int danoFinal = dano + (velocidade / 2);
+        Debug.Log($"{nomeInimigo} atacou rapidamente {player.Nome} causando {danoFinal} de dano!");
+
+        // Aplicar dano ao player
+        player.Vida -= danoFinal;
+        if (player.Vida < 0) player.Vida = 0;
+
+        Debug.Log($"{player.Nome} agora tem {player.Vida} de vida!");
+    }
+}
