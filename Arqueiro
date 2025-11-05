@@ -1,0 +1,67 @@
+using UnityEngine;
+
+public class Arqueiro : Player
+{
+    [SerializeField] private int flechas = 10;
+
+    void Start()
+    {
+        if (string.IsNullOrEmpty(Nome))
+            Nome = "Arqueiro";
+
+        Debug.Log($"Arqueiro {Nome} criado com {flechas} flechas!");
+    }
+
+    public void AtirarFlecha()
+    {
+        if (flechas > 0)
+        {
+            flechas--;
+            Debug.Log($"{Nome} atirou uma flecha! Flechas restantes: {flechas}");
+        }
+        else
+        {
+            Debug.Log($"{Nome} não tem flechas para atirar!");
+        }
+    }
+
+    public override void Atacar()
+    {
+        AtirarFlecha();
+    }
+
+    public void RecarregarFlechas(int quantidade)
+    {
+        flechas += quantidade;
+        Debug.Log($"{Nome} recarregou {quantidade} flechas. Total: {flechas}");
+    }
+
+    // NOVOS MÉTODOS ADICIONADOS
+    public void UsarChuvaFlechas()
+    {
+        if (flechas >= 3)
+        {
+            flechas -= 3;
+            Debug.Log($"{Nome} usou Chuva de Flechas! 3 flechas no ar! Restantes: {flechas}");
+        }
+        else
+        {
+            Debug.Log($" {Nome} não tem flechas suficientes para Chuva de Flechas!");
+        }
+    }
+
+    public void UsarTiroPreciso(Inimigo alvo)
+    {
+        if (flechas > 0 && alvo != null)
+        {
+            flechas--;
+            Debug.Log($" {Nome} usou Tiro Preciso em {alvo.NomeInimigo}! Dano CRÍTICO! Flechas: {flechas}");
+        }
+        else
+        {
+            Debug.Log($" {Nome} não pode usar Tiro Preciso agora!");
+        }
+    }
+
+    public int Flechas { get => flechas; }
+}
