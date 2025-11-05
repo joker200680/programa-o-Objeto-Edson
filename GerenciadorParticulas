@@ -1,0 +1,255 @@
+using UnityEngine;
+using System.Collections;
+
+public class GerenciadorParticulas : MonoBehaviour
+{
+    [Header("Cores dos Efeitos")]
+    public Color corLevelUp = Color.yellow;
+    public Color corDano = Color.red;
+    public Color corFlecha = Color.white;
+    public Color corMagia = Color.blue;
+    public Color corHabilidade = Color.magenta;
+
+    public void LevelUpEffect(Vector3 posicao)
+    {
+        Debug.Log(" EFEITO LEVEL UP!");
+        StartCoroutine(CriarEfeitoExplosao(posicao, corLevelUp, 1f, 12, 2f));
+    }
+
+    public void DanoEffect(Vector3 posicao)
+    {
+        StartCoroutine(CriarEfeitoExplosao(posicao, corDano, 0.5f, 8, 1f));
+    }
+
+    public void FlechaEffect(Vector3 posicao)
+    {
+        StartCoroutine(CriarEfeitoLinha(posicao, corFlecha, 2f));
+    }
+
+    public void MagiaEffect(Vector3 posicao)
+    {
+        StartCoroutine(CriarEfeitoOrb(posicao, corMagia, 0.8f, 2f));
+    }
+
+    public void HabilidadeEffect(Vector3 posicao)
+    {
+        StartCoroutine(CriarEfeitoAnel(posicao, corHabilidade, 1.2f, 2.5f));
+    }
+
+    // Efeito de explosão (para level up e dano)
+    private IEnumerator CriarEfeitoExplosao(Vector3 centro, Color cor, float tamanho, int quantidade, float duracao)
+    {
+        GameObject[] particulas = new GameObject[quantidade];
+
+        for (int i = 0; i < quantidade; i++)
+        {
+            // Criar cubo ou esfera
+            PrimitiveType tipo = (i % 2 == 0) ? PrimitiveType.Cube : PrimitiveType.Sphere;
+            particulas[i] = GameObject.CreatePrimitive(tipo);
+            particulas[i].transform.position = centro;
+            particulas[i].transform.localScale = Vector3.one * tamanho * 0.3f;
+
+            Renderer renderer = particulas[i].GetComponent<Renderer>();
+            renderer.material.color = cor;
+
+            // Direção aleatória
+            Vector3 direcao = new Vector3(
+                Random.Range(-1f, 1f),
+                Random.Range(0.2f, 1f),
+                Random.Range(-1f, 1f)
+            ).normalized;
+
+            StartCoroutine(MoverParticula(particulas[i], direcao, duracao));
+        }
+
+        yield return new WaitForSeconds(duracao);
+
+        // Destruir todas as partículas
+        foreach (GameObject particula in particulas)
+        {
+            if (particula != null)
+                Destroy(particula);
+        }
+    }
+
+    // Efeito de linha reta (para flechas)
+    private IEnumerator CriarEfeitoLinha(Vector3 inicio, Color cor, float duracao)
+    {
+        GameObject flecha = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        flecha.transform.position = inicio;
+        flecha.transform.localScale = new Vector3(0.1f, 0.1f, 0.5f);
+
+        Renderer renderer = flecha.GetComponent<Renderer>();
+        renderer.material.color = cor;
+
+        Vector3 direcao = Vector3.forward;
+        float velocidade = 8f;
+
+        float tempo = 0f;
+        while (tempo < duracao)
+        {
+            tempo += Time.deltaTime;
+            flecha.transform.position += direcao * velocidade * Time.deltaTime;
+            yield return null;
+        }
+
+        Destroy(flecha);
+    }
+
+    // Efeito de orb flutuante (para magia)
+    private IEnumerator CriarEfeitoOrb(Vector3 posicao, Color cor, float tamanho, float duracao)
+    {
+        GameObject orb = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        orb.transform.position = posicao;
+        orb.transform.localScale = Vector3.one * tamanho;
+
+        Renderer renderer = orb.GetComponent<Renderer>();
+        renderer.material.color = cor;
+
+        float tempo = 0f;
+        Vector3 posicaoOriginal = posicao;
+
+        while (tempo < duracao)
+        {
+            tempo += Time.deltaTime;
+
+            // Flutuar para cima e baixo
+            float altura = Mathf.Sin(tempo * 5f) * 0.3f;
+            orb.transform.position = posicaoOriginal + Vector3.up * altura;
+
+            // Pulsar o tamanho
+            float pulso = 1f + Mathf.Sin(tempo * 8f) * 0.2f;
+            orb.transform.localScale = Vector3.one * tamanho * pulso;
+
+            yield return null;
+        }
+
+        Destroy(orb);
+    }
+
+    // Efeito de anel expansivo (para habilidades)
+    private IEnumerator CriarEfeitoAnel(Vector3 centro, Color cor, float tamanho, float duracao)
+    {
+        int quantidade = 8;
+        GameObject[] anel = new GameObject[quantidade];
+
+        for (int i = 0; i < quantidade; i++)
+        {
+            anel[i] = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            anel[i].transform.position = centro;
+            anel[i].transform.localScale = Vector3.one * tamanho * 0.2f;
+            anel[i].GetComponent<Renderer>().material.color = cor;
+        }
+
+        float tempo = 0f;
+        while (tempo < duracao)
+        {
+            tempo += Time.deltaTime;
+            float progresso = tempo / duracao;
+            float raio = progresso * 3f;
+
+            for (int i = 0; i < quantidade; i++)
+            {
+                float angulo = (i / (float)quantidade) * 360f * Mathf.Deg2Rad;
+                Vector3 posicao = centro + new Vector3(
+                    Mathf.Cos(angulo) * raio,
+                    Mathf.Sin(progresso * 180f) * 0.5f,
+                    Mathf.Sin(angulo) * raio
+                );
+                anel[i].transform.position = posicao;
+            }
+
+            yield return null;
+        }
+
+        foreach (GameObject particula in anel)
+        {
+            if (particula != null)
+                Destroy(particula);
+        }
+    }
+
+    // Corrotina para mover partículas
+    private IEnumerator MoverParticula(GameObject particula, Vector3 direcao, float duracao)
+    {
+        float tempo = 0f;
+        Vector3 posicaoInicial = particula.transform.position;
+        float velocidade = Random.Range(2f, 5f);
+
+        while (tempo < duracao && particula != null)
+        {
+            tempo += Time.deltaTime;
+            particula.transform.position = posicaoInicial + direcao * velocidade * tempo;
+
+            float escala = 1f - (tempo / duracao);
+            particula.transform.localScale = Vector3.one * escala * 0.3f;
+
+            yield return null;
+        }
+    }
+
+    // Método para outros scripts usarem
+    public void CriarEfeito(string tipoEfeito, Vector3 posicao)
+    {
+        switch (tipoEfeito.ToLower())
+        {
+            case "levelup": LevelUpEffect(posicao); break;
+            case "dano": DanoEffect(posicao); break;
+            case "flecha": FlechaEffect(posicao); break;
+            case "magia": MagiaEffect(posicao); break;
+            case "habilidade": HabilidadeEffect(posicao); break;
+        }
+    }
+
+    //  TESTE CORRIGIDO - SEM ERROS
+    void Update()
+    {
+        Vector3 posicaoBase = new Vector3(0, 1, 0);
+
+        if (Input.GetKeyDown(KeyCode.Alpha1))
+            LevelUpEffect(posicaoBase);
+
+        if (Input.GetKeyDown(KeyCode.Alpha2))
+            DanoEffect(posicaoBase + Vector3.right * 2);
+
+        if (Input.GetKeyDown(KeyCode.Alpha3))
+            FlechaEffect(posicaoBase + Vector3.left * 2);
+
+        if (Input.GetKeyDown(KeyCode.Alpha4))
+            MagiaEffect(posicaoBase + Vector3.forward * 2);
+
+        if (Input.GetKeyDown(KeyCode.Alpha5))
+            HabilidadeEffect(posicaoBase + Vector3.back * 2);
+
+        // Tecla T para testar todos
+        if (Input.GetKeyDown(KeyCode.T))
+            TestarTodosEfeitos();
+    }
+
+    // Método para testar todos os efeitos
+    public void TestarTodosEfeitos()
+    {
+        Debug.Log("TESTANDO TODOS OS EFEITOS!");
+
+        Vector3 basePos = new Vector3(0, 1, 0);
+        LevelUpEffect(basePos);
+        StartCoroutine(TestarSequencialmente());
+    }
+
+    private IEnumerator TestarSequencialmente()
+    {
+        Vector3 basePos = new Vector3(0, 1, 0);
+
+        yield return new WaitForSeconds(1f);
+        DanoEffect(basePos + Vector3.right * 2);
+
+        yield return new WaitForSeconds(1f);
+        FlechaEffect(basePos + Vector3.left * 2);
+
+        yield return new WaitForSeconds(1f);
+        MagiaEffect(basePos + Vector3.forward * 2);
+
+        yield return new WaitForSeconds(1f);
+        HabilidadeEffect(basePos + Vector3.back * 2);
+    }
+}
