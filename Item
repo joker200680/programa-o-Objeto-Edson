@@ -1,0 +1,34 @@
+using UnityEngine;
+
+[System.Serializable]
+public class Item
+{
+    public string nome;
+    public string descricao;
+    public TipoItem tipo;
+    public int valor;
+    public bool equipado = false;
+
+    public enum TipoItem
+    {
+        Arma,
+        Armadura,
+        Consumivel,
+        Missao
+    }
+
+    public virtual void Usar(Player jogador)
+    {
+        Debug.Log($"Usando item: {nome}");
+    }
+
+    public virtual void Equipar(Player jogador)
+    {
+        Debug.Log($"Equipando: {nome}");
+    }
+
+    public virtual void Desequipar(Player jogador)
+    {
+        Debug.Log($"Desequipando: {nome}");
+    }
+}
