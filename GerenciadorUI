@@ -1,0 +1,118 @@
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+
+public class GerenciadorUI : MonoBehaviour
+{
+    [Header("Referências do Arqueiro")]
+    public Arqueiro arqueiro;
+    public TextMeshProUGUI textoNomeArqueiro;
+    public TextMeshProUGUI textoFlechas;
+    public Slider barraVidaArqueiro;
+
+    [Header("Referências do Guerreiro")]
+    public Guerreiro guerreiro;
+    public TextMeshProUGUI textoNomeGuerreiro;
+    public TextMeshProUGUI textoForca;
+    public Slider barraVidaGuerreiro;
+
+    [Header("Referências do Mago")]
+    public Mago mago;
+    public TextMeshProUGUI textoNomeMago;
+    public TextMeshProUGUI textoMana;
+    public Slider barraVidaMago;
+    public Slider barraMana;
+
+    [Header("Sistema de Experiência")]
+    public TextMeshProUGUI textoExperiencia;
+    public Slider barraExperiencia;
+    private int experienciaTotal = 0;
+    private int nivelAtual = 1;
+    private int experienciaProximoNivel = 100;
+
+    void Start()
+    {
+        AtualizarTodaUI();
+        InvokeRepeating("AtualizarUI", 0f, 0.5f); // Atualiza a cada 0.5 segundos
+    }
+
+    void AtualizarUI()
+    {
+        // Atualizar Arqueiro
+        if (arqueiro != null)
+        {
+            textoFlechas.text = $"Flechas: {arqueiro.Flechas}";
+            barraVidaArqueiro.value = arqueiro.Vida;
+        }
+
+        // Atualizar Guerreiro
+        if (guerreiro != null)
+        {
+            textoForca.text = $"Força: {guerreiro.Forca}";
+            barraVidaGuerreiro.value = guerreiro.Vida;
+        }
+
+        // Atualizar Mago
+        if (mago != null)
+        {
+            textoMana.text = $"Mana: {mago.Mana}";
+            barraVidaMago.value = mago.Vida;
+            barraMana.value = mago.Mana;
+        }
+    }
+
+    public void AtualizarTodaUI()
+    {
+        // Configurar valores máximos
+        barraVidaArqueiro.maxValue = arqueiro.Vida;
+        barraVidaGuerreiro.maxValue = guerreiro.Vida;
+        barraVidaMago.maxValue = mago.Vida;
+        barraMana.maxValue = mago.Mana;
+        barraExperiencia.maxValue = experienciaProximoNivel;
+
+        // Atualizar textos iniciais
+        textoNomeArqueiro.text = arqueiro.Nome;
+        textoNomeGuerreiro.text = guerreiro.Nome;
+        textoNomeMago.text = mago.Nome;
+
+        AtualizarUI();
+    }
+
+    public void AdicionarExperiencia(int quantidade)
+    {
+        experienciaTotal += quantidade;
+        textoExperiencia.text = $"XP: {experienciaTotal}/{experienciaProximoNivel}";
+        barraExperiencia.value = experienciaTotal;
+
+        // Verificar level up
+        if (experienciaTotal >= experienciaProximoNivel)
+        {
+            LevelUp();
+        }
+    }
+
+    private void LevelUp()
+    {
+        nivelAtual++;
+        experienciaTotal = 0;
+        experienciaProximoNivel = (int)(experienciaProximoNivel * 1.5f);
+
+        // Melhorar personagens
+        arqueiro.Vida += 20;
+        guerreiro.Vida += 25;
+        guerreiro.Forca += 3;
+        mago.Vida += 15;
+        mago.Mana += 20;
+
+        // Atualizar UI
+        barraVidaArqueiro.maxValue = arqueiro.Vida;
+        barraVidaGuerreiro.maxValue = guerreiro.Vida;
+        barraVidaMago.maxValue = mago.Vida;
+        barraMana.maxValue = mago.Mana;
+        barraExperiencia.maxValue = experienciaProximoNivel;
+
+        Debug.Log($" LEVEL UP! Todos os personagens agora são nível {nivelAtual}!");
+
+        AtualizarTodaUI();
+    }
+}
