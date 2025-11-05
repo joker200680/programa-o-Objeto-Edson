@@ -1,0 +1,102 @@
+using UnityEngine;
+using System.Collections;
+
+public class Inimigo : MonoBehaviour
+{
+    [SerializeField] protected string nomeInimigo;
+    [SerializeField] protected int vida;
+    [SerializeField] protected int vidaMaxima = 30;
+    [SerializeField] protected int dano;
+
+    void Start()
+    {
+        // Se vida não foi configurada no Inspector, usar vidaMaxima
+        if (vida == 0)
+            vida = vidaMaxima;
+
+        Debug.Log($"Inimigo {nomeInimigo} apareceu! Vida: {vida}/{vidaMaxima}");
+    }
+
+    public virtual void ReceberDano(int quantidade)
+    {
+        vida -= quantidade;
+
+        // Garantir que vida não fique negativa
+        if (vida < 0) vida = 0;
+
+        Debug.Log($"{nomeInimigo} recebeu {quantidade} de dano! Vida restante: {vida}");
+
+        if (vida <= 0)
+        {
+            Morrer();
+        }
+    }
+
+    public virtual void AtacarPlayer(Player player)
+    {
+        Debug.Log($"{nomeInimigo} atacou {player.Nome} causando {dano} de dano!");
+
+        // Aplicar dano ao player
+        player.Vida -= dano;
+
+        // Garantir que vida do player não fique negativa
+        if (player.Vida < 0) player.Vida = 0;
+
+        Debug.Log($"{player.Nome} agora tem {player.Vida} de vida!");
+    }
+
+    //  MÉTODO ADICIONADO: Verificar se está vivo
+    public bool EstaVivo()
+    {
+        return vida > 0;
+    }
+
+    //  MÉTODO ATUALIZADO: Morrer com efeitos visuais
+    protected virtual void Morrer()
+    {
+        Debug.Log($" {nomeInimigo} foi derrotado por {FindObjectOfType<Player>()?.Nome}!");
+
+        // Notificar sistema de recompensas
+        SistemaRecompensas recompensas = FindObjectOfType<SistemaRecompensas>();
+        if (recompensas != null)
+        {
+            recompensas.InimigoDerrotado(nomeInimigo);
+        }
+
+        // Efeito visual de morte - escalar para zero
+        StartCoroutine(EfeitoMorteVisual());
+
+        Destroy(gameObject, 1f);
+    }
+
+    // MÉTODO ADICIONADO: Efeito visual de morte
+    private IEnumerator EfeitoMorteVisual()
+    {
+        float tempo = 0f;
+        Vector3 escalaOriginal = transform.localScale;
+
+        while (tempo < 1f)
+        {
+            tempo += Time.deltaTime;
+            // Reduzir escala gradualmente
+            transform.localScale = escalaOriginal * (1f - tempo);
+            yield return null;
+        }
+    }
+
+    // Método para curar o inimigo (útil para testes)
+    public virtual void Curar(int quantidade)
+    {
+        vida += quantidade;
+        if (vida > vidaMaxima)
+            vida = vidaMaxima;
+
+        Debug.Log($"{nomeInimigo} curado! Vida: {vida}/{vidaMaxima}");
+    }
+
+    // Properties para acesso de outras classes
+    public string NomeInimigo { get => nomeInimigo; set => nomeInimigo = value; }
+    public int Vida { get => vida; set => vida = value; }
+    public int VidaMaxima { get => vidaMaxima; set => vidaMaxima = value; }
+    public int Dano { get => dano; set => dano = value; }
+}
