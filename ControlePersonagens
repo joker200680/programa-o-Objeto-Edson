@@ -1,0 +1,230 @@
+using UnityEngine;
+using System.Collections;
+
+public class ControlePersonagens : MonoBehaviour
+{
+    [Header("Personagens Controláveis")]
+    public Player[] personagens;
+    public int personagemAtualIndex = 0;
+
+    [Header("Configurações de Movimento")]
+    public float velocidadeMovimento = 8f; // Aumentei a velocidade
+    public float velocidadeRotacao = 200f; // Aumentei a rotação
+
+    private Player personagemAtual;
+    private Camera cameraPrincipal;
+
+    void Start()
+    {
+        cameraPrincipal = Camera.main;
+
+        // Verificar se os personagens foram atribuídos
+        if (personagens == null || personagens.Length == 0)
+        {
+            Debug.LogError(" Nenhum personagem atribuído ao ControlePersonagens!");
+            // Tentar encontrar automaticamente
+            personagens = FindObjectsOfType<Player>();
+        }
+
+        AtivarPersonagem(personagemAtualIndex);
+
+        Debug.Log("🎮 CONTROLES:");
+        Debug.Log("WASD: Mover personagem");
+        Debug.Log("TAB: Trocar personagem");
+        Debug.Log("Espaço: Atacar");
+        Debug.Log("E: Usar habilidade");
+        Debug.Log("R: Recarregar/Meditar");
+        Debug.Log("1, 2, 3: Trocar para personagem específico");
+    }
+
+    void Update()
+    {
+        if (personagemAtual == null)
+        {
+            Debug.LogWarning("Personagem atual é null! Tentando recuperar...");
+            AtivarPersonagem(personagemAtualIndex);
+            return;
+        }
+
+        ControlarMovimento();
+        ControlarAcoes();
+        ControlarTrocaPersonagem();
+    }
+
+    void ControlarMovimento()
+    {
+        // Movimento WASD - usando Input.GetKey para mais responsividade
+        Vector3 movimento = Vector3.zero;
+
+        if (Input.GetKey(KeyCode.W)) movimento += Vector3.forward;
+        if (Input.GetKey(KeyCode.S)) movimento += Vector3.back;
+        if (Input.GetKey(KeyCode.A)) movimento += Vector3.left;
+        if (Input.GetKey(KeyCode.D)) movimento += Vector3.right;
+
+        // Normalizar para movimento diagonal não ser mais rápido
+        if (movimento.magnitude > 1f)
+            movimento.Normalize();
+
+        movimento *= velocidadeMovimento * Time.deltaTime;
+        personagemAtual.transform.Translate(movimento, Space.World);
+
+        // Rotação para frente do movimento
+        if (movimento.magnitude > 0.1f)
+        {
+            Quaternion rotacaoAlvo = Quaternion.LookRotation(movimento.normalized);
+            personagemAtual.transform.rotation = Quaternion.RotateTowards(
+                personagemAtual.transform.rotation,
+                rotacaoAlvo,
+                velocidadeRotacao * Time.deltaTime
+            );
+
+            // Debug para verificar movimento
+            Debug.Log($"🏃 {personagemAtual.Nome} movendo: {movimento}");
+        }
+    }
+
+    void ControlarAcoes()
+    {
+        // Atacar
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            personagemAtual.Atacar();
+        }
+
+        // Habilidades específicas
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            UsarHabilidadePersonagem();
+        }
+
+        // Ações especiais
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            UsarAcaoEspecial();
+        }
+
+        // Inventário
+        if (Input.GetKeyDown(KeyCode.I))
+        {
+            Inventario inventario = FindObjectOfType<Inventario>();
+            if (inventario != null) inventario.ListarItens();
+        }
+    }
+
+    void ControlarTrocaPersonagem()
+    {
+        if (Input.GetKeyDown(KeyCode.Tab))
+        {
+            TrocarPersonagem();
+        }
+
+        // Trocar com teclas numéricas
+        if (Input.GetKeyDown(KeyCode.Alpha1) && personagens.Length > 0)
+            AtivarPersonagem(0);
+        if (Input.GetKeyDown(KeyCode.Alpha2) && personagens.Length > 1)
+            AtivarPersonagem(1);
+        if (Input.GetKeyDown(KeyCode.Alpha3) && personagens.Length > 2)
+            AtivarPersonagem(2);
+    }
+
+    void TrocarPersonagem()
+    {
+        personagemAtualIndex = (personagemAtualIndex + 1) % personagens.Length;
+        AtivarPersonagem(personagemAtualIndex);
+    }
+
+    void AtivarPersonagem(int index)
+    {
+        if (personagens == null || personagens.Length == 0)
+        {
+            Debug.LogError(" Lista de personagens vazia!");
+            return;
+        }
+
+        if (index < 0 || index >= personagens.Length)
+        {
+            Debug.LogError($" Índice {index} inválido!");
+            return;
+        }
+
+        // Desativar todos os personagens primeiro
+        foreach (Player p in personagens)
+        {
+            if (p != null)
+            {
+                Renderer renderer = p.GetComponent<Renderer>();
+                if (renderer != null)
+                    renderer.material.color = Color.gray;
+            }
+        }
+
+        // Ativar personagem atual
+        personagemAtual = personagens[index];
+        if (personagemAtual != null)
+        {
+            Renderer rendererAtual = personagemAtual.GetComponent<Renderer>();
+            if (rendererAtual != null)
+            {
+                // Cor baseada no tipo de personagem
+                if (personagemAtual is Arqueiro) rendererAtual.material.color = Color.green;
+                else if (personagemAtual is Guerreiro) rendererAtual.material.color = Color.red;
+                else if (personagemAtual is Mago) rendererAtual.material.color = Color.blue;
+            }
+
+            Debug.Log($" Agora controlando: {personagemAtual.Nome}");
+
+            // Mover câmera para o personagem
+            MoverCameraParaPersonagem();
+        }
+        else
+        {
+            Debug.LogError($" Personagem no índice {index} é null!");
+        }
+    }
+
+    void MoverCameraParaPersonagem()
+    {
+        if (personagemAtual != null && cameraPrincipal != null)
+        {
+            Vector3 posicaoCamera = personagemAtual.transform.position + new Vector3(0, 8, -8);
+            cameraPrincipal.transform.position = posicaoCamera;
+            cameraPrincipal.transform.LookAt(personagemAtual.transform.position + Vector3.up * 2f);
+        }
+    }
+
+    void UsarHabilidadePersonagem()
+    {
+        if (personagemAtual is Arqueiro arqueiro)
+        {
+            arqueiro.Atacar();
+            Debug.Log($" {arqueiro.Nome} atirou uma flecha!");
+        }
+        else if (personagemAtual is Guerreiro guerreiro)
+        {
+            guerreiro.Atacar();
+            Debug.Log($"{guerreiro.Nome} atacou com espada!");
+        }
+        else if (personagemAtual is Mago mago)
+        {
+            mago.Atacar();
+            Debug.Log($"{mago.Nome} lançou magia!");
+        }
+    }
+
+    void UsarAcaoEspecial()
+    {
+        if (personagemAtual is Arqueiro arqueiro)
+        {
+            arqueiro.RecarregarFlechas(5);
+        }
+        else if (personagemAtual is Mago mago)
+        {
+            mago.Meditar();
+        }
+        else if (personagemAtual is Guerreiro guerreiro)
+        {
+            guerreiro.GolpeEspada();
+            Debug.Log($"{guerreiro.Nome} usou golpe especial!");
+        }
+    }
+}
