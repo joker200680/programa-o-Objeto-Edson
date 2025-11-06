@@ -1,0 +1,324 @@
+using UnityEngine;
+using System.Collections.Generic;
+
+public class Inventario : MonoBehaviour
+{
+    [Header("Itens no Inventário")]
+    public List<Item> itens = new List<Item>();
+    public int capacidadeMaxima = 20;
+
+    [Header("Itens Equipados")]
+    public ItemArma armaEquipada;
+    public Item armaduraEquipada;
+
+    [Header("Sistema de Moedas")]
+    public int moedas = 100;
+
+    void Start()
+    {
+        // Adicionar alguns itens de exemplo para teste
+        AdicionarItensIniciais();
+    }
+
+    private void AdicionarItensIniciais()
+    {
+        // Criar alguns itens de exemplo
+        ItemConsumivel pocaoVida = new ItemConsumivel();
+        pocaoVida.nome = "Poção de Vida";
+        pocaoVida.descricao = "Restaura 30 de vida";
+        pocaoVida.cura = 30;
+        pocaoVida.manaRestaurada = 0;
+        pocaoVida.valor = 10;
+
+        ItemConsumivel pocaoMana = new ItemConsumivel();
+        pocaoMana.nome = "Poção de Mana";
+        pocaoMana.descricao = "Restaura 25 de mana";
+        pocaoMana.cura = 0;
+        pocaoMana.manaRestaurada = 25;
+        pocaoMana.valor = 15;
+
+        ItemArma arcoSimples = new ItemArma();
+        arcoSimples.nome = "Arco Simples";
+        arcoSimples.descricao = "Um arco básico para caça";
+        arcoSimples.dano = 5;
+        arcoSimples.tipoArma = ItemArma.TipoArma.Arco;
+        arcoSimples.valor = 25;
+
+        ItemArma espadaLonga = new ItemArma();
+        espadaLonga.nome = "Espada Longa";
+        espadaLonga.descricao = "Espada de aço temperado";
+        espadaLonga.dano = 8;
+        espadaLonga.tipoArma = ItemArma.TipoArma.Espada;
+        espadaLonga.valor = 40;
+
+        // Adicionar ao inventário
+        AdicionarItem(pocaoVida);
+        AdicionarItem(pocaoMana);
+        AdicionarItem(arcoSimples);
+        AdicionarItem(espadaLonga);
+
+        Debug.Log("Itens iniciais adicionados ao inventário!");
+        ListarItens();
+    }
+
+    public bool AdicionarItem(Item novoItem)
+    {
+        if (itens.Count < capacidadeMaxima)
+        {
+            itens.Add(novoItem);
+            Debug.Log($" {novoItem.nome} adicionado ao inventário.");
+            return true;
+        }
+        else
+        {
+            Debug.Log("Inventário cheio!");
+            return false;
+        }
+    }
+
+    public void RemoverItem(Item item)
+    {
+        if (itens.Contains(item))
+        {
+            itens.Remove(item);
+            Debug.Log($" {item.nome} removido do inventário.");
+        }
+    }
+
+    public void UsarItemConsumivel(ItemConsumivel item, Player jogador)
+    {
+        if (itens.Contains(item))
+        {
+            item.Usar(jogador);
+            itens.Remove(item);
+        }
+        else
+        {
+            Debug.Log($"Item {item.nome} não encontrado no inventário!");
+        }
+    }
+
+    // Método sobrecarregado para usar por nome
+    public void UsarItemConsumivel(string nomeItem, Player jogador)
+    {
+        ItemConsumivel item = BuscarItemConsumivel(nomeItem);
+        if (item != null)
+        {
+            UsarItemConsumivel(item, jogador);
+        }
+        else
+        {
+            Debug.Log($"Item {nomeItem} não encontrado!");
+        }
+    }
+
+    public void EquiparArma(ItemArma arma, Player jogador)
+    {
+        // Desequipar arma atual se houver
+        if (armaEquipada != null)
+        {
+            DesequiparArma(jogador);
+        }
+
+        armaEquipada = arma;
+        arma.Equipar(jogador);
+
+        // Remover do inventário
+        if (itens.Contains(arma))
+        {
+            itens.Remove(arma);
+        }
+
+        Debug.Log($"{jogador.Nome} equipou {arma.nome}!");
+    }
+
+    // Método sobrecarregado para equipar por nome
+    public void EquiparArma(string nomeArma, Player jogador)
+    {
+        ItemArma arma = BuscarItemArma(nomeArma);
+        if (arma != null)
+        {
+            EquiparArma(arma, jogador);
+        }
+        else
+        {
+            Debug.Log($"Arma {nomeArma} não encontrada!");
+        }
+    }
+
+    public void DesequiparArma(Player jogador)
+    {
+        if (armaEquipada != null)
+        {
+            armaEquipada.Desequipar(jogador);
+            AdicionarItem(armaEquipada); // Volta para o inventário
+            Debug.Log($" {jogador.Nome} desequipou {armaEquipada.nome}");
+            armaEquipada = null;
+        }
+        else
+        {
+            Debug.Log("Nenhuma arma equipada para desequipar!");
+        }
+    }
+
+    // Métodos de busca
+    public ItemConsumivel BuscarItemConsumivel(string nome)
+    {
+        foreach (Item item in itens)
+        {
+            if (item is ItemConsumivel consumivel && item.nome == nome)
+            {
+                return consumivel;
+            }
+        }
+        return null;
+    }
+
+    public ItemArma BuscarItemArma(string nome)
+    {
+        foreach (Item item in itens)
+        {
+            if (item is ItemArma arma && item.nome == nome)
+            {
+                return arma;
+            }
+        }
+        return null;
+    }
+
+    public Item BuscarItem(string nome)
+    {
+        foreach (Item item in itens)
+        {
+            if (item.nome == nome)
+            {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    // Sistema de compra/venda
+    public bool ComprarItem(Item item, int preco)
+    {
+        if (moedas >= preco)
+        {
+            if (AdicionarItem(item))
+            {
+                moedas -= preco;
+                Debug.Log($" Comprou {item.nome} por {preco} moedas. Moedas restantes: {moedas}");
+                return true;
+            }
+        }
+        else
+        {
+            Debug.Log($"Moedas insuficientes! Preço: {preco}, Moedas: {moedas}");
+        }
+        return false;
+    }
+
+    public void VenderItem(Item item)
+    {
+        if (itens.Contains(item))
+        {
+            int precoVenda = item.valor / 2; // Vende pela metade do preço
+            moedas += precoVenda;
+            itens.Remove(item);
+            Debug.Log($" Vendeu {item.nome} por {precoVenda} moedas. Total: {moedas}");
+        }
+    }
+
+    public void AdicionarMoedas(int quantidade)
+    {
+        moedas += quantidade;
+        Debug.Log($" +{quantidade} moedas! Total: {moedas}");
+    }
+
+    // Método para usar itens rapidamente pelo teclado
+    public void UsarItemRapido(int slot, Player jogador)
+    {
+        if (slot >= 0 && slot < itens.Count)
+        {
+            Item item = itens[slot];
+            if (item is ItemConsumivel consumivel)
+            {
+                UsarItemConsumivel(consumivel, jogador);
+            }
+            else if (item is ItemArma arma)
+            {
+                EquiparArma(arma, jogador);
+            }
+        }
+    }
+
+    public void ListarItens()
+    {
+        Debug.Log("=== INVENTÁRIO ===");
+        Debug.Log($"Moedas: {moedas}");
+        Debug.Log($"Espaço: {itens.Count}/{capacidadeMaxima}");
+
+        if (itens.Count == 0)
+        {
+            Debug.Log("Inventário vazio!");
+        }
+        else
+        {
+            for (int i = 0; i < itens.Count; i++)
+            {
+                string tipo = itens[i].GetType().Name;
+                Debug.Log($"[{i}] {itens[i].nome} - {tipo} (Valor: {itens[i].valor})");
+            }
+        }
+
+        if (armaEquipada != null)
+        {
+            Debug.Log($" ARMA EQUIPADA: {armaEquipada.nome} (Dano: +{armaEquipada.dano})");
+        }
+
+        Debug.Log("=================");
+    }
+
+    // Método para teste rápido no Update
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.I))
+        {
+            ListarItens();
+        }
+
+        if (Input.GetKeyDown(KeyCode.U))
+        {
+            // Usar primeiro item do inventário
+            if (itens.Count > 0)
+            {
+                Player jogador = FindObjectOfType<Player>();
+                if (jogador != null)
+                {
+                    UsarItemRapido(0, jogador);
+                }
+            }
+        }
+
+        if (Input.GetKeyDown(KeyCode.M))
+        {
+            AdicionarMoedas(50);
+        }
+
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            // Equipar primeira arma encontrada
+            Player jogador = FindObjectOfType<Player>();
+            if (jogador != null)
+            {
+                foreach (Item item in itens)
+                {
+                    if (item is ItemArma arma)
+                    {
+                        EquiparArma(arma, jogador);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
