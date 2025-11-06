@@ -1,0 +1,30 @@
+using UnityEngine;
+
+[System.Serializable]
+public class ItemConsumivel : Item
+{
+    public int cura;
+    public int manaRestaurada;
+
+    public ItemConsumivel()
+    {
+        tipo = TipoItem.Consumivel;
+    }
+
+    public override void Usar(Player jogador)
+    {
+        base.Usar(jogador);
+
+        jogador.Vida += cura;
+        if (jogador.Vida > 150) jogador.Vida = 150;
+
+        Mago mago = jogador as Mago;
+        if (mago != null)
+        {
+            mago.Mana += manaRestaurada;
+            if (mago.Mana > 100) mago.Mana = 100;
+        }
+
+        Debug.Log($" {jogador.Nome} usou {nome}. Vida: +{cura}, Mana: +{manaRestaurada}");
+    }
+}
