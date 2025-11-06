@@ -1,0 +1,56 @@
+using UnityEngine;
+
+[System.Serializable]
+public class ItemArma : Item
+{
+    public int dano;
+    public TipoArma tipoArma;
+
+    public enum TipoArma
+    {
+        Arco,
+        Espada,
+        Cajado
+    }
+
+    public ItemArma()
+    {
+        tipo = TipoItem.Arma;
+    }
+
+    public override void Equipar(Player jogador)
+    {
+        if (!equipado)
+        {
+            equipado = true;
+            Debug.Log($" {jogador.Nome} equipou {nome} (+{dano} de dano)");
+
+            // Aplicar bônus baseado no tipo de personagem
+            Arqueiro arqueiro = jogador as Arqueiro;
+            Guerreiro guerreiro = jogador as Guerreiro;
+            Mago mago = jogador as Mago;
+
+            if (arqueiro != null && tipoArma == TipoArma.Arco)
+            {
+                Debug.Log($" Arqueiro recebeu bônus com arco!");
+            }
+            else if (guerreiro != null && tipoArma == TipoArma.Espada)
+            {
+                Debug.Log($" Guerreiro recebeu bônus com espada!");
+            }
+            else if (mago != null && tipoArma == TipoArma.Cajado)
+            {
+                Debug.Log($" Mago recebeu bônus com cajado!");
+            }
+        }
+    }
+
+    public override void Desequipar(Player jogador)
+    {
+        if (equipado)
+        {
+            equipado = false;
+            Debug.Log($" {jogador.Nome} desequipou {nome}");
+        }
+    }
+}
