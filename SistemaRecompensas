@@ -1,0 +1,301 @@
+using UnityEngine;
+
+public class SistemaRecompensas : MonoBehaviour
+{
+    [Header("Referências")]
+    private GerenciadorUI gerenciadorUI;
+    private Inventario inventario;
+
+    [Header("Configurações de Recompensas")]
+    public int experienciaGoblin = 25;
+    public int experienciaOrc = 50;
+    public int experienciaChefe = 100;
+
+    public int moedasGoblin = 10;
+    public int moedasOrc = 20;
+    public int moedasChefe = 50;
+
+    [Header("Recompensas de Itens")]
+    public float chanceDropPocaoVida = 0.3f; // 30% de chance
+    public float chanceDropPocaoMana = 0.2f; // 20% de chance
+    public float chanceDropArma = 0.1f; // 10% de chance
+
+    void Start()
+    {
+        // Buscar referências automaticamente
+        gerenciadorUI = FindObjectOfType<GerenciadorUI>();
+        inventario = FindObjectOfType<Inventario>();
+
+        if (gerenciadorUI == null)
+            Debug.LogWarning("GerenciadorUI não encontrado!");
+        if (inventario == null)
+            Debug.LogWarning("Inventario não encontrado!");
+    }
+
+    public void InimigoDerrotado(string tipoInimigo)
+    {
+        int experiencia = 0;
+        int moedas = 0;
+        int flechasRecuperadas = 0;
+
+        switch (tipoInimigo.ToLower())
+        {
+            case "goblin":
+                experiencia = experienciaGoblin;
+                moedas = moedasGoblin;
+                flechasRecuperadas = 3;
+                Debug.Log($" Goblin derrotado! Recompensa: +{experiencia} XP, +{moedas} moedas");
+                break;
+
+            case "orc":
+                experiencia = experienciaOrc;
+                moedas = moedasOrc;
+                flechasRecuperadas = 5;
+                Debug.Log($" Orc derrotado! Recompensa: +{experiencia} XP, +{moedas} moedas");
+                break;
+
+            case "chefe":
+                experiencia = experienciaChefe;
+                moedas = moedasChefe;
+                flechasRecuperadas = 10;
+                Debug.Log($" Chefe derrotado! Recompensa: +{experiencia} XP, +{moedas} moedas");
+                break;
+
+            default:
+                experiencia = 10;
+                moedas = 5;
+                flechasRecuperadas = 1;
+                Debug.Log($" Inimigo genérico derrotado! Recompensa: +{experiencia} XP, +{moedas} moedas");
+                break;
+        }
+
+        // Distribuir recompensas
+        DistribuirRecompensas(experiencia, moedas, flechasRecuperadas, tipoInimigo);
+
+        // Chance de drop de itens
+        TentarDroparItens(tipoInimigo);
+    }
+
+    private void DistribuirRecompensas(int exp, int moedas, int flechas, string tipoInimigo)
+    {
+        // Adicionar experiência
+        if (gerenciadorUI != null)
+        {
+            gerenciadorUI.AdicionarExperiencia(exp);
+        }
+        else
+        {
+            Debug.Log("+ " + exp + " XP (GerenciadorUI não encontrado)");
+        }
+
+        // Adicionar moedas
+        if (inventario != null)
+        {
+            inventario.AdicionarMoedas(moedas);
+        }
+        else
+        {
+            Debug.Log("+ " + moedas + " moedas (Inventario não encontrado)");
+        }
+
+        // Recuperar flechas do arqueiro
+        Arqueiro arqueiro = FindObjectOfType<Arqueiro>();
+        if (arqueiro != null)
+        {
+            // Usar reflection para acessar método RecarregarFlechas se existir
+            var metodoRecarregar = typeof(Arqueiro).GetMethod("RecarregarFlechas");
+            if (metodoRecarregar != null)
+            {
+                metodoRecarregar.Invoke(arqueiro, new object[] { flechas });
+            }
+            else
+            {
+                // Método alternativo se RecarregarFlechas não existir
+                Debug.Log($" +{flechas} flechas recuperadas do {tipoInimigo}");
+            }
+        }
+
+        Debug.Log($" Recompensas distribuídas: +{exp} XP, +{moedas} moedas, +{flechas} flechas");
+    }
+
+    private void TentarDroparItens(string tipoInimigo)
+    {
+        if (inventario == null) return;
+
+        float chanceMultiplicador = 1.0f;
+
+        // Inimigos mais fortes têm maior chance de drop
+        switch (tipoInimigo.ToLower())
+        {
+            case "orc": chanceMultiplicador = 1.5f; break;
+            case "chefe": chanceMultiplicador = 2.0f; break;
+        }
+
+        // Tentar dropar poção de vida
+        if (Random.value <= chanceDropPocaoVida * chanceMultiplicador)
+        {
+            ItemConsumivel pocaoVida = new ItemConsumivel();
+            pocaoVida.nome = "Poção de Vida";
+            pocaoVida.descricao = "Restaura 30 de vida";
+            pocaoVida.cura = 30;
+            pocaoVida.manaRestaurada = 0;
+            pocaoVida.valor = 10;
+
+            inventario.AdicionarItem(pocaoVida);
+            Debug.Log($" Drop: {pocaoVida.nome}!");
+        }
+
+        // Tentar dropar poção de mana
+        if (Random.value <= chanceDropPocaoMana * chanceMultiplicador)
+        {
+            ItemConsumivel pocaoMana = new ItemConsumivel();
+            pocaoMana.nome = "Poção de Mana";
+            pocaoMana.descricao = "Restaura 25 de mana";
+            pocaoMana.cura = 0;
+            pocaoMana.manaRestaurada = 25;
+            pocaoMana.valor = 15;
+
+            inventario.AdicionarItem(pocaoMana);
+            Debug.Log($" Drop: {pocaoMana.nome}!");
+        }
+
+        // Tentar dropar arma (chance menor)
+        if (Random.value <= chanceDropArma * chanceMultiplicador)
+        {
+            ItemArma arma = CriarArmaAleatoria();
+            inventario.AdicionarItem(arma);
+            Debug.Log($" Drop Raro: {arma.nome}!");
+        }
+    }
+
+    private ItemArma CriarArmaAleatoria()
+    {
+        ItemArma arma = new ItemArma();
+        int tipo = Random.Range(0, 3);
+
+        switch (tipo)
+        {
+            case 0: // Arco
+                arma.nome = "Arco Recurvo";
+                arma.descricao = "Arco elegante para ataques à distância";
+                arma.dano = 7;
+                arma.tipoArma = ItemArma.TipoArma.Arco;
+                arma.valor = 35;
+                break;
+
+            case 1: // Espada
+                arma.nome = "Espada de Aço";
+                arma.descricao = "Espada bem balanceada para combate corpo a corpo";
+                arma.dano = 10;
+                arma.tipoArma = ItemArma.TipoArma.Espada;
+                arma.valor = 45;
+                break;
+
+            case 2: // Cajado
+                arma.nome = "Cajado do Aprendiz";
+                arma.descricao = "Cajado básico para magos iniciantes";
+                arma.dano = 6;
+                arma.tipoArma = ItemArma.TipoArma.Cajado;
+                arma.valor = 30;
+                break;
+        }
+
+        return arma;
+    }
+
+    // Método para recompensas de missões
+    public void CompletarMissao(string nomeMissao, int dificuldade)
+    {
+        int expBase = 0;
+        int moedasBase = 0;
+
+        switch (dificuldade)
+        {
+            case 1: // Fácil
+                expBase = 50;
+                moedasBase = 25;
+                break;
+            case 2: // Médio
+                expBase = 100;
+                moedasBase = 50;
+                break;
+            case 3: // Difícil
+                expBase = 200;
+                moedasBase = 100;
+                break;
+        }
+
+        Debug.Log($" Missão '{nomeMissao}' completada! Recompensa: +{expBase} XP, +{moedasBase} moedas");
+
+        if (gerenciadorUI != null)
+        {
+            gerenciadorUI.AdicionarExperiencia(expBase);
+        }
+
+        if (inventario != null)
+        {
+            inventario.AdicionarMoedas(moedasBase);
+        }
+
+        // Item especial de missão
+        ItemConsumivel itemMissao = new ItemConsumivel();
+        itemMissao.nome = "Recompensa de " + nomeMissao;
+        itemMissao.descricao = "Item especial por completar a missão";
+        itemMissao.cura = 50;
+        itemMissao.manaRestaurada = 40;
+        itemMissao.valor = 0; // Não pode ser vendido
+
+        if (inventario != null)
+        {
+            inventario.AdicionarItem(itemMissao);
+        }
+    }
+
+    // Método para teste rápido
+    public void TestarRecompensas()
+    {
+        Debug.Log("=== TESTE DE RECOMPENSAS ===");
+        InimigoDerrotado("goblin");
+        InimigoDerrotado("orc");
+        CompletarMissao("Missão de Teste", 2);
+        Debug.Log("=== FIM DO TESTE ===");
+    }
+
+    // Método para limpar recompensas (útil para reset)
+    public void ResetarRecompensas()
+    {
+        experienciaGoblin = 25;
+        experienciaOrc = 50;
+        experienciaChefe = 100;
+
+        moedasGoblin = 10;
+        moedasOrc = 20;
+        moedasChefe = 50;
+
+        Debug.Log("Recompensas resetadas para valores padrão.");
+    }
+
+    // Update para testes com teclado
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.F1))
+        {
+            InimigoDerrotado("goblin");
+        }
+
+        if (Input.GetKeyDown(KeyCode.F2))
+        {
+            InimigoDerrotado("orc");
+        }
+
+        if (Input.GetKeyDown(KeyCode.F3))
+        {
+            CompletarMissao("Missão Rápida", 1);
+        }
+
+        if (Input.GetKeyDown(KeyCode.F4))
+        {
+            TestarRecompensas();
+        }
+    }
+}
