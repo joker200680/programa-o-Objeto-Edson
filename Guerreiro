@@ -1,0 +1,70 @@
+using UnityEngine;
+using System.Collections;
+
+public class Guerreiro : Player
+{
+    [SerializeField] private int forca;
+    [SerializeField] private int resistencia;
+
+    void Start()
+    {
+        if (string.IsNullOrEmpty(Nome))
+            Nome = "Guerreiro";
+
+        if (forca == 0) forca = 15;
+        if (resistencia == 0) resistencia = 10;
+
+        Debug.Log($"Guerreiro {Nome} criado! Força: {forca}, Resistência: {resistencia}");
+    }
+
+    public void GolpeEspada()
+    {
+        int dano = forca + Random.Range(1, 6);
+        Debug.Log($"{Nome} desferiu golpe de espada! Dano: {dano}");
+    }
+
+    public void Defender()
+    {
+        int defesa = resistencia + 5;
+        Debug.Log($"{Nome} está defendendo! Defesa: {defesa}");
+    }
+
+    public override void Atacar()
+    {
+        GolpeEspada();
+    }
+
+    // MÉTODO USAR FURIA ADICIONADO
+    public void UsarFuria()
+    {
+        Debug.Log($" {Nome} entrou em FÚRIA! Força aumentada temporariamente!");
+
+        // Aumentar força temporariamente
+        StartCoroutine(EfeitoFuria());
+    }
+
+    private IEnumerator EfeitoFuria()
+    {
+        int forcaOriginal = forca;
+        forca += 10; // Aumenta a força em 10
+
+        Debug.Log($" Força aumentada de {forcaOriginal} para {forca}!");
+
+        // Duração da fúria: 5 segundos
+        yield return new WaitForSeconds(5f);
+
+        // Voltar à força original
+        forca = forcaOriginal;
+        Debug.Log($" {Nome} saiu do estado de Fúria. Força: {forca}");
+    }
+
+    // MÉTODO USAR PROVOCAR ADICIONADO
+    public void UsarProvocar()
+    {
+        Debug.Log($" {Nome} está PROVOCANDO todos os inimigos!");
+        Debug.Log("Todos os inimigos agora focam no guerreiro!");
+    }
+
+    public int Forca { get => forca; set => forca = value; }
+    public int Resistencia { get => resistencia; set => resistencia = value; }
+}
