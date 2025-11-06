@@ -1,0 +1,107 @@
+using UnityEngine;
+using System.Collections;
+
+public class DetectorProximidade : MonoBehaviour
+{
+    [Header("Configurações de Detecção")]
+    public float distanciaMorte = 3f;
+    public bool debugMode = true;
+
+    private Player player;
+    private Renderer rendererPlayer;
+    private Color corOriginal;
+
+    void Start()
+    {
+        player = GetComponent<Player>();
+        rendererPlayer = GetComponent<Renderer>();
+
+        if (rendererPlayer != null)
+        {
+            corOriginal = rendererPlayer.material.color;
+        }
+
+        if (debugMode)
+            Debug.Log($"{player.Nome} está procurando inimigos próximos...");
+    }
+
+    void Update()
+    {
+        VerificarInimigosProximos();
+    }
+
+    void VerificarInimigosProximos()
+    {
+        // Encontrar todos os inimigos na cena
+        Inimigo[] todosInimigos = FindObjectsOfType<Inimigo>();
+        bool inimigoMuitoProximo = false;
+
+        foreach (Inimigo inimigo in todosInimigos)
+        {
+            if (inimigo != null && inimigo.EstaVivo())
+            {
+                float distancia = Vector3.Distance(transform.position, inimigo.transform.position);
+
+                if (distancia <= distanciaMorte)
+                {
+                    // Inimigo está na distância de morte
+                    inimigoMuitoProximo = true;
+
+                    if (debugMode)
+                        Debug.Log($" {player.Nome} detectou {inimigo.NomeInimigo} a {distancia:F1} unidades!");
+
+                    MatarInimigo(inimigo);
+                    break; // Sair do loop após matar um inimigo
+                }
+            }
+        }
+
+        // Mudar cor quando inimigo próximo
+        if (rendererPlayer != null)
+        {
+            if (inimigoMuitoProximo)
+                rendererPlayer.material.color = Color.red;
+            else
+                rendererPlayer.material.color = corOriginal;
+        }
+    }
+
+    void MatarInimigo(Inimigo inimigo)
+    {
+        if (inimigo != null && inimigo.EstaVivo())
+        {
+            Debug.Log($" {player.Nome} se aproximou de {inimigo.NomeInimigo} e o matou!");
+
+            // Aplicar dano fatal
+            inimigo.ReceberDano(999); // Dano suficiente para matar qualquer inimigo
+
+            // Efeito visual
+            StartCoroutine(EfeitoMorte(inimigo.transform.position));
+        }
+    }
+
+    System.Collections.IEnumerator EfeitoMorte(Vector3 posicaoInimigo)
+    {
+        // Efeito visual simples - cubo preto no lugar do inimigo
+        GameObject efeitoMorte = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        efeitoMorte.transform.position = posicaoInimigo;
+        efeitoMorte.transform.localScale = Vector3.one * 0.3f;
+
+        Renderer rendererEfeito = efeitoMorte.GetComponent<Renderer>();
+        rendererEfeito.material.color = Color.black;
+
+        Debug.Log($" {player.Nome} eliminou o inimigo!");
+
+        // Manter o efeito por 2 segundos
+        yield return new WaitForSeconds(1f);
+        Destroy(efeitoMorte);
+    }
+
+    // Desenhar gizmos para visualizar a área de detecção (apenas no Editor)
+    void OnDrawGizmosSelected()
+    {
+        // Área de morte (vermelho)
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, distanciaMorte);
+    }
+}
